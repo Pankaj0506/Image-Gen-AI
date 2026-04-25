@@ -85,6 +85,17 @@
         <textarea id="prompt" rows="3" placeholder="A futuristic digital character named Lizel..."></textarea>
 
         <div>
+            <label>AI Model:</label><br>
+            <select id="modelSelect">
+                <option value="dall-e-3" selected>DALL-E 3 (Best Prompt Following)</option>
+                <option value="flux-1.1-pro">Flux 1.1 Pro (High Quality)</option>
+                <option value="stable-diffusion-3">Stable Diffusion 3</option>
+                <option value="flux-1-schnell">Flux Schnell (Fast)</option>
+                <option value="gpt-image-2">GPT Image 2</option>
+            </select>
+        </div>
+
+        <div>
             <label>Aspect Ratio:</label><br>
             <select id="aspectRatio">
                 <option value="1:1" selected>1:1 (Square)</option>
@@ -132,6 +143,7 @@
         async function generate() {
             const prompt = document.getElementById('prompt').value;
             const aspectRatio = document.getElementById('aspectRatio').value;
+            const modelName = document.getElementById('modelSelect').value;
             const status = document.getElementById('status');
             const resultContainer = document.getElementById('resultContainer');
 
@@ -147,7 +159,7 @@
             try {
                 // Define options for Puter's txt2img
                 const options = {
-                    // Letting Puter use its default high-quality available model instead of the restricted 'grok-2-image'
+                    model: modelName,
                     aspectRatio: aspectRatio
                 };
 
