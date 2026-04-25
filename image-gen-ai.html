@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Imagine - Puter MVP</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --text: #f8fafc;
+            --accent: #38bdf8;
+        }
+
+        body {
+            font-family: 'Inter', system-ui;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        input,
+        select,
+        button,
+        textarea {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: white;
+            font-size: 1rem;
+        }
+
+        button {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+        }
+
+        #preview {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        #result {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .loader {
+            display: none;
+            color: var(--accent);
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Grok Image Generator</h2>
+
+        <textarea id="prompt" rows="3" placeholder="A futuristic digital character named Lizel..."></textarea>
+
+        <div>
+            <label>Aspect Ratio:</label><br>
+            <select id="aspectRatio">
+                <option value="1:1" selected>1:1 (Square)</option>
+                <option value="16:9">16:9 (Landscape)</option>
+                <option value="9:16">9:16 (Portrait)</option>
+                <option value="4:3">4:3 (Standard)</option>
+                <option value="3:4">3:4 (Vertical)</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Reference Image (Optional):</label><br>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <img id="preview" alt="Reference Preview">
+
+        <button id="genBtn">Generate Image</button>
+
+        <div id="status" class="loader">Grok is thinking...</div>
+        <div id="resultContainer"></div>
+    </div>
+
+    <script>
+        const genBtn = document.getElementById('genBtn');
+        const imageInput = document.getElementById('imageInput');
+        const preview = document.getElementById('preview');
+        let base64Image = null;
+
+        // 1. Handle Image Upload & Preview
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    base64Image = event.target.result;
+                    preview.src = base64Image;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. Main Generation Function
+        async function generate() {
+            const prompt = document.getElementById('prompt').value;
+            const aspectRatio = document.getElementById('aspectRatio').value;
+            const status = document.getElementById('status');
+            const resultContainer = document.getElementById('resultContainer');
+
+            if (!prompt) {
+                alert("Please provide a prompt.");
+                return;
+            }
+
+            genBtn.disabled = true;
+            status.style.display = 'block';
+            resultContainer.innerHTML = '';
+
+            try {
+                // Define arguments for Puter's txt2img
+                const aiArgs = {
+                    prompt: prompt,
+                    model: "grok-2-image",
+                    provider: "xai",
+                    aspectRatio: aspectRatio
+                };
+
+                // If reference image provided, pass it along in case Puter supports image-to-image transitively
+                if (base64Image) {
+                    aiArgs.image_url = base64Image;
+                }
+
+                // Use Puter's built-in AI proxy client
+                // Note: txt2img returns an HTMLImageElement directly on success!
+                const imageElement = await puter.ai.txt2img(aiArgs);
+
+                // Add the result safely
+                imageElement.id = 'result';
+                resultContainer.appendChild(imageElement);
+
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                genBtn.disabled = false;
+                status.style.display = 'none';
+            }
+        }
+
+        genBtn.onclick = generate;
+    </script>
+
+</body>
+
+</html>
