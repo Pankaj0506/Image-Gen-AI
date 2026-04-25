@@ -145,29 +145,37 @@
             resultContainer.innerHTML = '';
 
             try {
-                // Define arguments for Puter's txt2img
-                const aiArgs = {
-                    prompt: prompt,
+                // Define options for Puter's txt2img
+                const options = {
                     model: "grok-2-image",
                     provider: "xai",
                     aspectRatio: aspectRatio
                 };
 
-                // If reference image provided, pass it along in case Puter supports image-to-image transitively
+                // If reference image provided, pass it along using input_image (Puter docs specific)
                 if (base64Image) {
-                    aiArgs.image_url = base64Image;
+                    options.input_image = base64Image;
                 }
 
                 // Use Puter's built-in AI proxy client
                 // Note: txt2img returns an HTMLImageElement directly on success!
-                const imageElement = await puter.ai.txt2img(aiArgs);
+                const imageElement = await puter.ai.txt2img(prompt, options);
 
                 // Add the result safely
                 imageElement.id = 'result';
                 resultContainer.appendChild(imageElement);
 
             } catch (err) {
-                alert("Error: " + err.message);
+                console.error("Image generation error:", err);
+                let errorMessage = "Unknown error";
+                if (typeof err === "string") {
+                    errorMessage = err;
+                } else if (err instanceof Error) {
+                    errorMessage = err.message;
+                } else if (typeof err === "object") {
+                    errorMessage = err.error || err.message || JSON.stringify(err);
+                }
+                alert("Error: " + errorMessage);
             } finally {
                 genBtn.disabled = false;
                 status.style.display = 'none';
