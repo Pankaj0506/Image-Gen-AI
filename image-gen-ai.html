@@ -87,9 +87,66 @@
         <div>
             <label>AI Model:</label><br>
             <select id="modelSelect">
-                <!-- Free & Accessible Models -->
-                <option value="flux-1-schnell" selected>Flux Schnell (Fast & Free)</option>
-                <option value="stable-diffusion-3">Stable Diffusion 3 (High Quality)</option>
+                <!-- xAI -->
+                <optgroup label="xAI (Grok)">
+                    <option value="x-ai:grok-2-image" selected>Grok 2 Image</option>
+                </optgroup>
+
+                <!-- Google -->
+                <optgroup label="Google">
+                    <option value="google:google/gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
+                    <option value="google:google/gemini-3-pro-image-preview">Gemini 3 Pro Image Preview</option>
+                    <option value="google:google/gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image Preview</option>
+                    <option value="google:google/imagen-4.0">Imagen 4.0</option>
+                    <option value="google:google/imagen-4.0-fast">Imagen 4.0 Fast</option>
+                    <option value="google:google/imagen-4.0-ultra">Imagen 4.0 Ultra</option>
+                </optgroup>
+
+                <!-- OpenAI -->
+                <optgroup label="OpenAI">
+                    <option value="openai:openai/dall-e-2">DALL-E 2</option>
+                    <option value="openai:openai/dall-e-3">DALL-E 3</option>
+                    <option value="openai:openai/gpt-image-1">GPT-Image-1</option>
+                    <option value="openai:openai/gpt-image-1-mini">GPT-Image-1 Mini</option>
+                    <option value="openai:openai/gpt-image-1.5">GPT-Image-1.5</option>
+                    <option value="openai:openai/gpt-image-2">GPT-Image-2</option>
+                </optgroup>
+
+                <!-- Replicate -->
+                <optgroup label="Replicate">
+                    <option value="replicate:black-forest-labs/flux-1.1-pro">Flux 1.1 Pro (Replicate)</option>
+                    <option value="replicate:black-forest-labs/flux-2-dev">Flux 2 Dev (Replicate)</option>
+                    <option value="replicate:black-forest-labs/flux-2-klein-4b">Flux 2 Klein 4B (Replicate)</option>
+                    <option value="replicate:black-forest-labs/flux-2-klein-9b-base">Flux 2 Klein 9B Base (Replicate)</option>
+                    <option value="replicate:black-forest-labs/flux-2-pro">Flux 2 Pro (Replicate)</option>
+                    <option value="replicate:black-forest-labs/flux-schnell">Flux Schnell (Replicate)</option>
+                    <option value="replicate:leonardoai/lucid-origin">Leonardo Lucid Origin</option>
+                    <option value="replicate:leonardoai/phoenix-1.0">Leonardo Phoenix 1.0</option>
+                </optgroup>
+
+                <!-- Workers AI -->
+                <optgroup label="Workers AI">
+                    <option value="workers-ai:black-forest-labs/flux.1-schnell">Flux.1 Schnell (Workers AI)</option>
+                    <option value="workers-ai:black-forest-labs/flux.2-dev">Flux.2 Dev (Workers AI)</option>
+                    <option value="workers-ai:black-forest-labs/flux.2-klein-4b">Flux.2 Klein 4B (Workers AI)</option>
+                    <option value="workers-ai:black-forest-labs/flux.2-klein-9b">Flux.2 Klein 9B (Workers AI)</option>
+                    <option value="workers-ai:leonardo/lucid-origin">Leonardo Lucid Origin (Workers AI)</option>
+                    <option value="workers-ai:leonardo/phoenix-1.0">Leonardo Phoenix 1.0 (Workers AI)</option>
+                </optgroup>
+
+                <!-- Together AI -->
+                <optgroup label="Together AI">
+                    <option value="togetherai:stabilityai/stable-diffusion-3-medium">Stable Diffusion 3 Medium</option>
+                    <option value="togetherai:stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL Base 1.0</option>
+                    <option value="togetherai:black-forest-labs/flux.1-schnell">Flux.1 Schnell</option>
+                    <option value="togetherai:black-forest-labs/flux.1.1-pro">Flux.1.1 Pro</option>
+                    <option value="togetherai:black-forest-labs/flux.2-pro">Flux.2 Pro</option>
+                    <option value="togetherai:ideogram/ideogram-3.0">Ideogram 3.0</option>
+                    <option value="togetherai:lykon/dreamshaper">Dreamshaper</option>
+                    <option value="togetherai:wan-ai/wan2.6-image">Wan2.6 Image</option>
+                    <option value="togetherai:qwen/qwen-image-2.0-pro">Qwen Image 2.0 Pro</option>
+                    <!-- other togetherai models can be added dynamically, these are the top highlights -->
+                </optgroup>
             </select>
         </div>
 
@@ -155,20 +212,36 @@
             resultContainer.innerHTML = '';
 
             try {
-                // Define options for Puter's txt2img
-                const options = {
-                    model: modelName,
-                    aspectRatio: aspectRatio
-                };
-
-                // If reference image provided, pass it along using input_image (Puter docs specific)
-                if (base64Image) {
-                    options.input_image = base64Image;
+                // Parse the provider:model format
+                let providerVal = null;
+                let modelVal = modelName;
+                if (modelName.includes(':')) {
+                    const parts = modelName.split(':');
+                    providerVal = parts[0];
+                    // Map x-ai provider specifically to what the puter JS SDK grok docs mention ('xai')
+                    if (providerVal === 'x-ai') providerVal = 'xai';
+                    
+                    modelVal = parts.slice(1).join(':'); // e.g. "x-ai/grok-2-image" or "grok-2-image"
                 }
 
-                // Use Puter's built-in AI proxy client
-                // Note: txt2img returns an HTMLImageElement directly on success!
-                const imageElement = await puter.ai.txt2img(prompt, options);
+                // Define options for Puter's txt2img using the single-object structure defined in the Grok tutorial
+                const apiArgs = {
+                    prompt: prompt,
+                    model: modelVal,
+                    aspectRatio: aspectRatio
+                };
+                
+                if (providerVal) {
+                    apiArgs.provider = providerVal;
+                }
+
+                // If reference image provided, pass it along using input_image
+                if (base64Image) {
+                    apiArgs.input_image = base64Image;
+                }
+
+                // Use Puter's built-in AI proxy client with the full signature
+                const imageElement = await puter.ai.txt2img(apiArgs);
 
                 // Add the result safely
                 imageElement.id = 'result';
